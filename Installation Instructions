@@ -1,4 +1,5 @@
-Step 1: Install Linux. I using Kali Linux VM 2024.2 version. This tutorial assumes you know how to spin up the VM.
+Part I: Prepare the OS, Docker, Kubernetes
+Step 1: Install Linux. I am using Kali Linux VM 2024.2 version. This tutorial assumes you know how to spin up the VM.
 
 Step 2: Install Docker using the following command
 
@@ -16,5 +17,171 @@ Copy and paste the following six lines (13 to 18) into your terminal
 [ $(uname -m) = aarch64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-arm64
 chmod +x ./kind
 sudo mv ./kind /usr/local/bin/kind
+
+Step 4: Create a Kubernetes Cluster
+#kind create cluster --name kindcluster
+
+Step 5: Set the Kubectl context
+#kubectl cluster-info --context kind-kindcluster
+
+If Kali Linux prompts you to install kubectl, click Y for Yes
+
+Step 6: Check the kindcluster control plane is Ready or not
+#kubectl get nodes
+
+Step 7: Check if no pods are running at this time
+#kubectl get pods
+You should see "No resources found in default namespace."
+
+Step 8: Ensure K8S environment is ready
+#kubectl get pods -n kube-system
+
+You should see something like this:
+NAME                                                READY   STATUS    RESTARTS   AGE
+coredns-7db6d8ff4d-24wdv                            1/1     Running   0          6m14s
+coredns-7db6d8ff4d-bfzxq                            1/1     Running   0          6m14s
+etcd-kindcluster-control-plane                      1/1     Running   0          6m28s
+kindnet-qxngf                                       1/1     Running   0          6m14s
+kube-apiserver-kindcluster-control-plane            1/1     Running   0          6m28s
+kube-controller-manager-kindcluster-control-plane   1/1     Running   0          6m28s
+kube-proxy-rqjzn                                    1/1     Running   0          6m14s
+kube-scheduler-kindcluster-control-plane            1/1     Running   0          6m28s
+
+Part II: Install the OWASP Juice Shop Application
+Step 9: Create a manifest yaml file for the Juice Shop deployment
+#nano juice-shop-deployment.yaml 
+
+copy and paste lines 56 to 73 into nano text editor and save the file
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: juice-shop
+spec:
+  template:
+    metadata:
+      labels:
+        app: juice-shop
+    spec:
+      containers:
+      - name: juice-shop
+        image: bkimminich/juice-shop
+  selector:
+    matchLabels:
+      app: juice-shop
+...
+
+Step 10: Launch the juice shop
+#kubectl create -f juice-shop-deployment.yaml 
+
+You should see "deployment.apps/juice-shop created"
+
+Step 11: Make sure the Pod is running
+#kubectl get pod --watch
+
+You should see something like:
+juice-shop-699c69578f-fzdfq   1/1     Running             0          91s
+
+Step 12: Check the deployment
+#kubectl get deployment
+
+You should see the following:
+
+NAME         READY   UP-TO-DATE   AVAILABLE   AGE
+juice-shop   1/1     1            1           3m8s
+
+Step 13: Create the service yaml file for OWASP Juice Shop Application
+# nano juice-shop-service.yaml 
+
+copy and paste lines 99 to 112 into nano and save the file
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: juice-shop
+spec:
+  type: NodePort
+  selector:
+    app: juice-shop
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 3000
+...
+
+Explanation:
+- External traffic comes in on the node port (e.g. 31167, it is dynamically assigned, in Step 14)
+- The node port forwards traffic to the Service port (8000)
+- The Service port forwards traffic to the target port (3000)
+- The containers in the pods listen on port 3000 and receive the traffic
+- The juice-shop web application in the container is listening on port 3000 for incoming request.
+
+Step 14: Launch the service yaml file you just created
+# kubectl create -f juice-shop-service.yaml 
+
+You should see:
+service/juice-shop created
+
+Step 15: Check the Service Virtual IP address is properly created (i.e. ClusterIP)
+# kubectl get svc juice-shop
+
+You should see something like:
+
+NAME         TYPE       CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+juice-shop   NodePort   10.96.119.165   <none>        8000:31167/TCP   21s
+
+<Important> Take note of node port 31167 (in my example), this is the port that allows the OWASP Juice Shop service to be available to the external world.
+
+Step 16: Check the endpoint is created
+# kubectl get ep juice-shop
+
+You should see:
+NAME         ENDPOINTS         AGE
+juice-shop   10.244.0.5:3000   59s
+
+Now run another command,
+# kubectl get pod -o wide
+
+You should notice that the Endpoint IP address (in my example, 10.244.0.5) matches the Pod's IP address (i.e. 10.244.0.5) as seen below.
+
+NAME                          READY   STATUS    RESTARTS   AGE     IP           NODE                 NOMINATED NODE   READINESS GATES
+juice-shop-699c69578f-fzdfq   1/1     Running   0          7m23s   10.244.0.5   kind-control-plane   <none>           <none>
+
+Step 17: Now find out the Worker Node's IP address, in my example, it is 172.18.0.2
+# kubectl get node -o wide
+NAME                 STATUS   ROLES                  AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE       KERNEL-VERSION      CONTAINER-RUNTIME
+kind-control-plane   Ready    control-plane,master   11h   v1.21.1   172.18.0.2    <none>        Ubuntu 21.04   5.11.0-25-generic   containerd://1.5.2
+
+Step 18: Now combine the Worker Node IP address and the Node Port in Line 135 to access the OWASP Juice Shop Service
+# curl 172.18.0.2:31167
+
+You should see something similar:
+--TRUNCATED--
+<script src="runtime-es2018.js" type="module"></script><script src="runtime-es5.js" nomodule defer></script><script src="polyfills-es5.js" nomodule defer></script><script src="polyfills-es2018.js" type="module"></script><script src="vendor-es2018.js" type="module"></script><script src="vendor-es5.js" nomodule defer></script><script src="main-es2018.js" type="module"></script><script src="main-es5.js" nomodule defer></script></body>
+</html>
+
+Step 19: Now open the browser in Kali Linux and key in 172.18.0.2:31167, you should see the "Welcome to OWASP Juice Shop!"
+
+Congrats for sticking with me so far. Now you must take note that this website is only accessible from within this Virtual Machine. 
+You have to do additional port forwarding to ensure that it is accessible to the outside world.
+Go back to line 110 and take note of the Port 8000, we are not able to access from anywhere outside of this VM. 
+Also, we do not want to use the NodePort (32267) to access, so we will port forward to port 8080 where any machine outside of this VM can access.
+
+Step 20: Port Forward from Cluster IP and Service Port to VM's localhost and new port 8080
+# kubectl port-forward svc/juice-shop 8080:8000
+
+You should see the following, leave this terminal running.
+
+Forwarding from 127.0.0.1:8080 -> 3000
+Forwarding from [::1]:8080 -> 3000
+
+Step 21: Open another browser tab in Kali Linux and browse to localhost:8080, you should be able to see the same website as in line 165.
+
+
+
+
+
 
 
