@@ -10,7 +10,7 @@ Client:
 
 Step 3: Install Kind (easy to install Kubernetes distro)
 
-Copy and paste the following six lines (13 to 18) into your terminal
+Copy and paste the following six lines (14 to 19) into your terminal
 # For AMD64 / x86_64
 [ $(uname -m) = x86_64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
 # For ARM64
