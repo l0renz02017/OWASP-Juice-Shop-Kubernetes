@@ -217,6 +217,8 @@ Forwarding from [::1]:8080 -> 3000
 
 Step 21: Open another browser tab in Kali Linux and browse to localhost:8080, you should be able to see the same website as in line 196.
 
+Step 22: Delete the kubernetes cluster you created with the command
+$ kind delete cluster --name kindcluster
 <The End>
 
 
