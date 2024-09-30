@@ -1,6 +1,29 @@
 Create the K8 Cluster with 1 Master and 3 Worker nodes
 ======================================================
 kind create cluster --config kind-example-config.yaml
+Creating cluster "kind" ...
+ ✓ Ensuring node image (kindest/node:v1.30.0) 🖼
+ ✓ Preparing nodes 📦 📦 📦 📦  
+ ✓ Writing configuration 📜 
+ ✓ Starting control-plane 🕹 
+ ✓ Installing CNI 🔌 
+ ✓ Installing StorageClass 💾 
+ ✓ Joining worker nodes 🚜 
+Set kubectl context to "kind-kind"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-kind
+
+Have a nice day! 👋
+
+Check the Kind Cluster
+======================
+root@ubuntuserver2204:/home/ubuntu# kubectl cluster-info --context kind-kind
+Kubernetes control plane is running at https://127.0.0.1:32915
+CoreDNS is running at https://127.0.0.1:32915/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+root@ubuntuserver2204:/home/ubuntu# 
 
 
 
