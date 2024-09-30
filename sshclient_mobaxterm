@@ -1,2 +1,4 @@
 Objective: When you need to use one common SSH client to access multiple servers using SSH, it is easier to do so from a single client with multiple windows.
-Tool: https://mobaxterm.mobatek.net/download.html, this is a free client for use up to 12 concurrent sessions.
+Tool: https://mobaxterm.mobatek.net/download.html, this is a free client for use up to 12 concurrent sessions. Use this tool when you have to manage multiple AWS sessions. For installation guide, watch this video at this time code https://youtu.be/NnkUGzaqqOc?t=974
+
+
