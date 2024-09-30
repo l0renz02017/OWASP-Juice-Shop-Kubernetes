@@ -24,7 +24,7 @@ curl: try 'curl --help' or 'curl --manual' for more information
 chmod: cannot access './kind': No such file or directory
 mv: cannot stat './kind': No such file or directory
 
-so I will replace line 15 with the following, and then run line 18 and 19 commands
+so I will replace line 15-19 with the following lines 28-30
 $ wget -O ./kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
 $ chmod +x ./kind
 $ sudo mv ./kind /usr/local/bin/kind
