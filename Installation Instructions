@@ -49,7 +49,7 @@ kubectl cluster-info --context kind-kindcluster
 Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
 
 Step 5: Set the Kubectl context
-$ kubectl cluster-info --context kind-kindcluster
+$ kubectl cluster-info --context kind-kindcluster << you might get an error, so follow instructions (lines 54 to 59) if kubectl is not installed before.
 
 If Kali Linux prompts you to install kubectl, click Y for Yes
 If it doesn't prompt you, follow the following three steps (lines 57 to 60) to install kubectl
@@ -151,7 +151,7 @@ spec:
 Explanation:
 The above yaml file will create a virtual ClusterIP that listens on port 31167 in my example.
 - External traffic comes in on the Node Port (e.g. 31167, it is dynamically assigned, in Step 14)
-- The Node Port forwards traffic to the Service port (8000) which is defined in line 114, this port is not accessible outside the cluster.
+- The Node Port forwards traffic to the Service port (8000) which is defined in line 147, this port is not accessible outside the cluster.
 - The Service port forwards traffic to the target port (3000), the target port refers to the port which the pod in the Worker Node will be listening for incoming requests.
 - The containers in the pod listen on port 3000 for incoming requests
 - The juice-shop web application will run in the container that is running in the pod. 
@@ -187,7 +187,7 @@ You should notice that the Endpoint IP address (in my example, 10.244.0.5) match
 NAME                          READY   STATUS    RESTARTS   AGE     IP           NODE                 NOMINATED NODE   READINESS GATES
 juice-shop-699c69578f-fzdfq   1/1     Running   0          7m23s   10.244.0.5   kind-control-plane   <none>           <none>
 
-Step 17: Now find out the Worker Node's IP address, in my example, it is 172.18.0.2
+Step 17: Now find out the Worker Node's IP address, in my example, it is 172.18.0.2, see below column called INTERNAL-IP
 # kubectl get node -o wide
 NAME                 STATUS   ROLES                  AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE       KERNEL-VERSION      CONTAINER-RUNTIME
 kind-control-plane   Ready    control-plane,master   11h   v1.21.1   172.18.0.2    <none>        Ubuntu 21.04   5.11.0-25-generic   containerd://1.5.2
