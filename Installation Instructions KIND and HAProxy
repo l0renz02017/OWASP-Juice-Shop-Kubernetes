@@ -1,2 +1,15 @@
-
+Create the K8 Cluster with 1 Master and 3 Worker nodes
+======================================================
 kind create cluster --config kind-example-config.yaml
+
+
+
+
+
+Delete the K8 Cluster with 1 Master and 3 Worker nodes
+======================================================
+root@ubuntuserver2204:/home/ubuntu# kind delete cluster
+Deleting cluster "kind" ...
+Deleted nodes: ["kind-control-plane" "kind-worker2" "kind-worker" "kind-worker3"]
+root@ubuntuserver2204:/home/ubuntu# 
+
