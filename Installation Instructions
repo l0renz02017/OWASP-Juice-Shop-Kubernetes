@@ -1,7 +1,7 @@
 Part I: Prepare the OS, Docker, Kubernetes
 Step 1: Install Linux. I am using Kali Linux VM 2024.2 version. This tutorial assumes you know how to spin up the VM.
 
-Step 2: Install Docker using the following command, this is a very old version of Docker, but it will work for this lab, to install a newer version with Docker Compose baked in, read here
+Step 2: Install Docker using the following command, this is a very old version of Docker, but it will work for this lab, to install a newer version (docker-ce) with Docker Compose baked in, read here
 https://www.kali.org/docs/containers/installing-docker-on-kali/
 $ apt install docker.io
 $ docker version
