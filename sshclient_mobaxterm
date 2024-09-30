@@ -1,0 +1,2 @@
+Objective: When you need to use one common SSH client to access multiple servers using SSH, it is easier to do so from a single client with multiple windows.
+Tool: https://mobaxterm.mobatek.net/download.html, this is a free client for use up to 12 concurrent sessions.
