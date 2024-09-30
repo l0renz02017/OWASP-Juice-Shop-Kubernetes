@@ -221,6 +221,14 @@ Step 22: Delete the kubernetes cluster you created with the command
 $ kind delete cluster --name kindcluster
 <The End>
 
+Diary log: 30 Sep 2024
+The issue with the above is that the OWASP Juiceshop  website is only accessible within the VM itself that is acting as the KIND K8S Kubernetes. If you run a browser in another machine, you will not able able to access
+the website.
+
+To resolve this issue, you have to install a reverse proxy like HAProxy.
+
+see the next file "Installation Instructions for KIND and HAProxy"
+
 
 
 
