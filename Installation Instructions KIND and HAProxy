@@ -126,22 +126,29 @@ backend k8s-control-plane
  mode tcp
  balance roundrobin
  option tcp-check
- server k8s-master-001.lan.int 172.18.0.3:30934 check fall 3 rise 2
- server k8s-master-002.lan.int 172.18.0.4:30934 check fall 3 rise 2
- server k8s-master-003.lan.int 172.18.0.5:30934 check fall 3 rise 2
+ server k8s-slave-001.lan.int 172.18.0.3:30934 check fall 3 rise 2
+ server k8s-slave-002.lan.int 172.18.0.4:30934 check fall 3 rise 2
+ server k8s-slave-003.lan.int 172.18.0.5:30934 check fall 3 rise 2
+
+Edit the host file (add the following into the host file at /etc/hosts)
+==================
+172.18.0.3 k8s-slave-001.lan.int
+172.18.0.4 k8s-slave-002.lan.int
+172.18.0.5 k8s-slave-003.lan.int
 
 
 Restart the service so that it loads the new settings.
 
-sudo systemctl restart haproxy
-sudo systemctl status haproxy
+# sudo systemctl restart haproxy
+# sudo systemctl status haproxy
 
 At this point, you may see some error message when you try to run haproxy, it is ok, just ignore it, after you install Keepalived, the haproxy will run normally.
 
 Configuring Keepalived
-Now let’s install Keepalived on both servers: ha-proxy-001 and ha-proxy-002
+======================
+Now let’s install Keepalived
 
-apt install -y keepalived
+# apt install -y keepalived
 
 In order for Keepalived to work correctly, the ability to bind non-local IP addresses must be configured in the operating system. For that, let’s run these commands: (!!! in the last successful install, i think i didn't run this)
 
@@ -162,6 +169,8 @@ Proto Recv-Q Send-Q Local Address           Foreign Address         State
 tcp        0      0 192.168.101.135:6443    0.0.0.0:*               LISTEN     
 
 Line 162 shows that the HAProxy is running correctly, i.e. any client browser that enters http://192.168.101.135:6443 will be redirected by HAProxy to one of the worker nodes running the Juice-Shop website.
+
+Now go to another VM machine that contains the client browser and enter http://192.168.101.135:6443, you should be able to see the juice-shop website.
 
 Delete the K8 Cluster with 1 Master and 3 Worker nodes
 ======================================================
