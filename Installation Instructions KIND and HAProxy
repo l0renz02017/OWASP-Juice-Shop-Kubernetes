@@ -1,3 +1,30 @@
+Create a VM (ubuntu 22.04) and permanently fix the IP address to 192.168.101.135. Use the following method
+===============================================================================
+root@ubuntuserver2204:/home/ubuntu# cd /etc/netplan
+root@ubuntuserver2204:/etc/netplan# ls
+00-installer-config.yaml  00-installer-config.yaml.bak
+root@ubuntuserver2204:/etc/netplan# 
+
+change the 00-installer-config.yaml file to
+
+# This is the network config written by 'subiquity'
+network:
+  ethernets:
+    ens33:
+        addresses: [192.168.101.135/24]
+        nameservers:
+            addresses : [8.8.8.8]
+        routes:
+            - to: default
+              via: 192.168.101.2
+
+
+
+
+
+
+
+
 Create the K8 Cluster with 1 Master and 3 Worker nodes
 ======================================================
 kind create cluster --config kind-example-config.yaml
