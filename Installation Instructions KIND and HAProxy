@@ -19,12 +19,6 @@ network:
               via: 192.168.101.2
 
 
-
-
-
-
-
-
 Create the K8 Cluster with 1 Master and 3 Worker nodes
 ======================================================
 kind create cluster --config kind-example-config.yaml
@@ -198,6 +192,54 @@ tcp        0      0 192.168.101.135:6443    0.0.0.0:*               LISTEN
 Line 162 shows that the HAProxy is running correctly, i.e. any client browser that enters http://192.168.101.135:6443 will be redirected by HAProxy to one of the worker nodes running the Juice-Shop website.
 
 Now go to another VM machine that contains the client browser and enter http://192.168.101.135:6443, you should be able to see the juice-shop website.
+
+To show in which worker node is the JuiceShop website running in, 
+=================================================================
+root@ubuntuserver2204:/home/ubuntu# kubectl get pods -o wide --all-namespaces
+NAMESPACE            NAME                                         READY   STATUS    RESTARTS   AGE   IP           NODE                 NOMINATED NODE   READINESS GATES
+default              juice-shop2-7649b9bbb7-bknqx                 1/1     Running   0          57m   10.244.1.2   kind-worker3         <none>           <none>
+kube-system          coredns-7db6d8ff4d-b2jhl                     1/1     Running   0          61m   10.244.0.3   kind-control-plane   <none>           <none>
+kube-system          coredns-7db6d8ff4d-kv6b7                     1/1     Running   0          61m   10.244.0.4   kind-control-plane   <none>           <none>
+kube-system          etcd-kind-control-plane                      1/1     Running   0          61m   172.18.0.2   kind-control-plane   <none>           <none>
+kube-system          kindnet-8fxx6                                1/1     Running   0          60m   172.18.0.4   kind-worker2         <none>           <none>
+kube-system          kindnet-kmff5                                1/1     Running   0          60m   172.18.0.3   kind-worker3         <none>           <none>
+kube-system          kindnet-lcmj5                                1/1     Running   0          61m   172.18.0.2   kind-control-plane   <none>           <none>
+kube-system          kindnet-lzzj6                                1/1     Running   0          60m   172.18.0.5   kind-worker          <none>           <none>
+kube-system          kube-apiserver-kind-control-plane            1/1     Running   0          61m   172.18.0.2   kind-control-plane   <none>           <none>
+kube-system          kube-controller-manager-kind-control-plane   1/1     Running   0          61m   172.18.0.2   kind-control-plane   <none>           <none>
+kube-system          kube-proxy-sr7mr                             1/1     Running   0          60m   172.18.0.4   kind-worker2         <none>           <none>
+kube-system          kube-proxy-v2hwc                             1/1     Running   0          60m   172.18.0.3   kind-worker3         <none>           <none>
+kube-system          kube-proxy-wcrsg                             1/1     Running   0          60m   172.18.0.5   kind-worker          <none>           <none>
+kube-system          kube-proxy-wq2ln                             1/1     Running   0          61m   172.18.0.2   kind-control-plane   <none>           <none>
+kube-system          kube-scheduler-kind-control-plane            1/1     Running   0          61m   172.18.0.2   kind-control-plane   <none>           <none>
+local-path-storage   local-path-provisioner-988d74bc-6zrcm        1/1     Running   0          61m   10.244.0.2   kind-control-plane   <none>           <none>
+
+The above shows it is running in kind-worker3, see line 199, now we can drain it and see that it will shift to another worker node
+# kubectl drain --ignore-daemonsets kind-worker2
+# kubectl drain --ignore-daemonsets kind-worker3
+
+Now check again, worker 2 and worker 3 no longer runs the workload for juiceshop2
+# kubectl get pods -o wide --all-namespaces
+NAMESPACE            NAME                                         READY   STATUS    RESTARTS   AGE    IP           NODE                 NOMINATED NODE   READINESS GATES
+default              juice-shop2-7649b9bbb7-2ndzg                 1/1     Running   0          104s   10.244.3.2   kind-worker          <none>           <none>
+kube-system          coredns-7db6d8ff4d-b2jhl                     1/1     Running   0          64m    10.244.0.3   kind-control-plane   <none>           <none>
+kube-system          coredns-7db6d8ff4d-kv6b7                     1/1     Running   0          64m    10.244.0.4   kind-control-plane   <none>           <none>
+kube-system          etcd-kind-control-plane                      1/1     Running   0          64m    172.18.0.2   kind-control-plane   <none>           <none>
+kube-system          kindnet-8fxx6                                1/1     Running   0          64m    172.18.0.4   kind-worker2         <none>           <none>
+kube-system          kindnet-kmff5                                1/1     Running   0          64m    172.18.0.3   kind-worker3         <none>           <none>
+kube-system          kindnet-lcmj5                                1/1     Running   0          64m    172.18.0.2   kind-control-plane   <none>           <none>
+kube-system          kindnet-lzzj6                                1/1     Running   0          64m    172.18.0.5   kind-worker          <none>           <none>
+kube-system          kube-apiserver-kind-control-plane            1/1     Running   0          64m    172.18.0.2   kind-control-plane   <none>           <none>
+kube-system          kube-controller-manager-kind-control-plane   1/1     Running   0          64m    172.18.0.2   kind-control-plane   <none>           <none>
+kube-system          kube-proxy-sr7mr                             1/1     Running   0          64m    172.18.0.4   kind-worker2         <none>           <none>
+kube-system          kube-proxy-v2hwc                             1/1     Running   0          64m    172.18.0.3   kind-worker3         <none>           <none>
+kube-system          kube-proxy-wcrsg                             1/1     Running   0          64m    172.18.0.5   kind-worker          <none>           <none>
+kube-system          kube-proxy-wq2ln                             1/1     Running   0          64m    172.18.0.2   kind-control-plane   <none>           <none>
+kube-system          kube-scheduler-kind-control-plane            1/1     Running   0          64m    172.18.0.2   kind-control-plane   <none>           <none>
+local-path-storage   local-path-provisioner-988d74bc-6zrcm        1/1     Running   0          64m    10.244.0.2   kind-control-plane   <none>           <none>
+
+
+
 
 Delete the K8 Cluster with 1 Master and 3 Worker nodes
 ======================================================
