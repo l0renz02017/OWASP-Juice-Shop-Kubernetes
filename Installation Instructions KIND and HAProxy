@@ -139,7 +139,7 @@ Copy lines 140 to 152 and Add to the bottom of the existing haproxy.cfg file
 
 frontend kubernetes
  mode tcp
- bind 192.168.101.135:6443
+ bind 192.168.101.136:6443
  option tcplog
  default_backend k8s-control-plane
  
