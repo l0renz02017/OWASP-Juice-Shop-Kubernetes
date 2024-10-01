@@ -139,7 +139,7 @@ Copy lines 140 to 152 and Add to the bottom of the existing haproxy.cfg file
 
 frontend kubernetes
  mode tcp
- bind 192.168.101.136:6443
+ bind 192.168.101.135:6443
  option tcplog
  default_backend k8s-control-plane
  
@@ -191,7 +191,7 @@ Oct 01 03:16:59 ubuntuserver2204 haproxy[31650]: [WARNING]  (31650) : Server k8s
 Oct 01 03:16:59 ubuntuserver2204 haproxy[31650]: [ALERT]    (31650) : backend 'k8s-control-plane' has no server available!
 
 
-At this point, you may see some error message when you try to run haproxy, it is ok, just ignore it, after you install Keepalived, the haproxy will run normally.
+Keepalived is not required unless you have two HAProxy set up and you need to configure VRRP so that there is a virtual IP address that will be shared between two HAProxy servers.
 
 Configuring Keepalived
 ======================
@@ -201,14 +201,44 @@ Now let’s install Keepalived
 
 In order for Keepalived to work correctly, the ability to bind non-local IP addresses must be configured in the operating system. For that, let’s run these commands: (!!! in the last successful install, i think i didn't run this)
 
-sudo echo "net.ipv4.ip_nonlocal_bind=1" >> /etc/sysctl.conf
+# sudo echo "net.ipv4.ip_nonlocal_bind=1" >> /etc/sysctl.conf
 
 # Run the following command to check if update was applied (!!! in the last successful install, i think i didn't run this)
-sudo sysctl -p
+# sudo sysctl -p
 
 You should see the following response
 
 net.ipv4.ip_nonlocal_bind = 1 # Is correct!
+
+To implement an extra layer of protection in our Keepalived configuration, let’s add a new group and user that will run the scripts.
+====================================================================================================================================
+# sudo groupadd -r keepalived_script
+# sudo useradd -r -s /sbin/nologin -g keepalived_script -M keepalived_script
+
+Now we can configure Keepalived, for that edit the file: /etc/keepalived/keepalived.conf
+========================================================================================
+global_defs {
+ # Don't run scripts configured to be run as root if any part of the path
+ # is writable by a non-root user.
+ enable_script_security
+}
+vrrp_script chk_haproxy {
+ script "/usr/bin/pgrep haproxy"
+ interval 2 # check every 2 seconds
+ weight 2 # add 2 points of priority if OK
+}
+vrrp_instance VI_1 {
+ interface ens33 # change here to match your network interface name.
+ state MASTER # change here to BACKUP on the Backup server.
+ virtual_router_id 51
+ priority 101 # 101 master, 100 backup change here according to server
+virtual_ipaddress {
+  192.168.101.135
+ }
+track_script {
+  chk_haproxy
+ }
+}
 
 Check to see if the HAProxy Frontend Loadbalancer is working properly
 =====================================================================
@@ -217,7 +247,7 @@ Active Internet connections (servers and established)
 Proto Recv-Q Send-Q Local Address           Foreign Address         State      
 tcp        0      0 192.168.101.135:6443    0.0.0.0:*               LISTEN     
 
-Line 218 shows that the HAProxy is running correctly, i.e. any client browser that enters http://192.168.101.135:6443 will be redirected by HAProxy to one of the worker nodes running the Juice-Shop website.
+Line 248 shows that the HAProxy is running correctly, i.e. any client browser that enters http://192.168.101.135:6443 will be redirected by HAProxy to one of the worker nodes running the Juice-Shop website.
 
 Now go to another VM machine that contains the client browser and enter http://192.168.101.135:6443, you should be able to see the juice-shop website.
 
@@ -242,9 +272,12 @@ kube-system          kube-proxy-wq2ln                             1/1     Runnin
 kube-system          kube-scheduler-kind-control-plane            1/1     Running   0          61m   172.18.0.2   kind-control-plane   <none>           <none>
 local-path-storage   local-path-provisioner-988d74bc-6zrcm        1/1     Running   0          61m   10.244.0.2   kind-control-plane   <none>           <none>
 
-The above shows it is running in kind-worker3, see line 228, now we can drain it and see that it will shift to another worker node
+The above shows it is running in kind-worker3, see line 258, now we can drain it and see that it will shift to another worker node
 # kubectl drain --ignore-daemonsets kind-worker2
 # kubectl drain --ignore-daemonsets kind-worker3
+node/kind-worker3 cordoned
+Warning: ignoring DaemonSet-managed Pods: kube-system/kindnet-pf8tp, kube-system/kube-proxy-h9c7j
+evicting pod default/juice-shop2-7649b9bbb7-9tn9q
 
 Now check again, worker 2 and worker 3 no longer runs the workload for juiceshop2
 # kubectl get pods -o wide --all-namespaces
@@ -267,12 +300,165 @@ kube-system          kube-scheduler-kind-control-plane            1/1     Runnin
 local-path-storage   local-path-provisioner-988d74bc-6zrcm        1/1     Running   0          64m    10.244.0.2   kind-control-plane   <none>           <none>
 
 
-
-
-Delete the K8 Cluster with 1 Master and 3 Worker nodes
+Clean-up: Delete the K8 Cluster with 1 Master and 3 Worker nodes
 ======================================================
 root@ubuntuserver2204:/home/ubuntu# kind delete cluster
 Deleting cluster "kind" ...
 Deleted nodes: ["kind-control-plane" "kind-worker2" "kind-worker" "kind-worker3"]
 root@ubuntuserver2204:/home/ubuntu# 
 
+Troubleshooting Section
+=======================
+
+Check your hosts file
+=====================
+root@ubuntuserver2204:/home/ubuntu# cat /etc/hosts
+127.0.0.1 localhost
+127.0.1.1 ubuntuserver2204
+192.168.101.135 juice-shop.local
+172.18.0.2 k8s-slave-001.lan.int
+172.18.0.5 k8s-slave-002.lan.int
+172.18.0.4 k8s-slave-003.lan.int
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+root@ubuntuserver2204:/home/ubuntu# 
+
+Check the haproxy.cfg configuration
+===================================
+root@ubuntuserver2204:/home/ubuntu# cd /etc/haproxy/haproxy.cfg 
+bash: cd: /etc/haproxy/haproxy.cfg: Not a directory
+root@ubuntuserver2204:/home/ubuntu# cd /etc/haproxy
+root@ubuntuserver2204:/etc/haproxy# ls
+errors  haproxy.cfg
+root@ubuntuserver2204:/etc/haproxy# cat haproxy.cfg 
+global
+        log /dev/log    local0
+        log /dev/log    local1 notice
+        chroot /var/lib/haproxy
+        stats socket /run/haproxy/admin.sock mode 660 level admin expose-fd listeners
+        stats timeout 30s
+        user haproxy
+        group haproxy
+        daemon
+
+        # Default SSL material locations
+        ca-base /etc/ssl/certs
+        crt-base /etc/ssl/private
+
+        # See: https://ssl-config.mozilla.org/#server=haproxy&server-version=2.0.3&config=intermediate
+        ssl-default-bind-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384
+        ssl-default-bind-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+        ssl-default-bind-options ssl-min-ver TLSv1.2 no-tls-tickets
+
+defaults
+        log     global
+        mode    http
+        option  httplog
+        option  dontlognull
+        timeout connect 5000
+        timeout client  50000
+        timeout server  50000
+        errorfile 400 /etc/haproxy/errors/400.http
+        errorfile 403 /etc/haproxy/errors/403.http
+        errorfile 408 /etc/haproxy/errors/408.http
+        errorfile 500 /etc/haproxy/errors/500.http
+        errorfile 502 /etc/haproxy/errors/502.http
+        errorfile 503 /etc/haproxy/errors/503.http
+        errorfile 504 /etc/haproxy/errors/504.http
+frontend kubernetes
+ mode tcp
+ bind 192.168.101.135:6443
+ option tcplog
+ default_backend k8s-control-plane
+ 
+backend k8s-control-plane
+ mode tcp
+ balance roundrobin
+ option tcp-check
+ server k8s-slave-001.lan.int 172.18.0.2:32037 check fall 3 rise 2
+ server k8s-slave-002.lan.int 172.18.0.5:32037 check fall 3 rise 2
+ server k8s-slave-003.lan.int 172.18.0.4:32037 check fall 3 rise 2
+root@ubuntuserver2204:/etc/haproxy# 
+
+Check the keepalived.cgf file
+=============================
+root@ubuntuserver2204:/etc/haproxy# cd /etc/keepalived/
+root@ubuntuserver2204:/etc/keepalived# ls
+keepalive.conf  keepalived.conf
+root@ubuntuserver2204:/etc/keepalived# 
+root@ubuntuserver2204:/etc/keepalived# cat keepalived.conf
+global_defs {
+ # Don't run scripts configured to be run as root if any part of the path
+ # is writable by a non-root user.
+ enable_script_security
+}
+vrrp_script chk_haproxy {
+ script "/usr/bin/pgrep haproxy"
+ interval 2 # check every 2 seconds
+ weight 2 # add 2 points of priority if OK
+}
+vrrp_instance VI_1 {
+ interface ens33 # change here to match your network interface name.
+ state MASTER # change here to BACKUP on the Backup server.
+ virtual_router_id 51
+ priority 101 # 101 master, 100 backup change here according to server
+virtual_ipaddress {
+  192.168.101.135
+ }
+track_script {
+  chk_haproxy
+ }
+}
+root@ubuntuserver2204:/etc/keepalived# 
+
+Check status of haproxy service
+===============================
+root@ubuntuserver2204:/etc/keepalived# systemctl status haproxy
+● haproxy.service - HAProxy Load Balancer
+     Loaded: loaded (/lib/systemd/system/haproxy.service; enabled; vendor preset: enabled)
+     Active: active (running) since Tue 2024-10-01 07:04:45 UTC; 14min ago
+       Docs: man:haproxy(1)
+             file:/usr/share/doc/haproxy/configuration.txt.gz
+    Process: 9841 ExecStartPre=/usr/sbin/haproxy -Ws -f $CONFIG -c -q $EXTRAOPTS (code=exited, status=0/SUCCESS)
+   Main PID: 9843 (haproxy)
+      Tasks: 3 (limit: 4521)
+     Memory: 70.2M
+        CPU: 4.089s
+     CGroup: /system.slice/haproxy.service
+             ├─9843 /usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -p /run/haproxy.pid -S /run/haproxy-master.sock
+             └─9845 /usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -p /run/haproxy.pid -S /run/haproxy-master.sock
+
+Oct 01 07:04:45 ubuntuserver2204 systemd[1]: Starting HAProxy Load Balancer...
+Oct 01 07:04:45 ubuntuserver2204 haproxy[9843]: [NOTICE]   (9843) : New worker #1 (9845) forked
+Oct 01 07:04:45 ubuntuserver2204 systemd[1]: Started HAProxy Load Balancer.
+root@ubuntuserver2204:/etc/keepalived# 
+
+Check status of keepalived service
+==================================
+root@ubuntuserver2204:/etc/keepalived# systemctl status keepalived
+● keepalived.service - Keepalive Daemon (LVS and VRRP)
+     Loaded: loaded (/lib/systemd/system/keepalived.service; enabled; vendor preset: enabled)
+     Active: active (running) since Tue 2024-10-01 07:13:15 UTC; 7min ago
+   Main PID: 10233 (keepalived)
+      Tasks: 2 (limit: 4521)
+     Memory: 5.3M
+        CPU: 22.720s
+     CGroup: /system.slice/keepalived.service
+             ├─10233 /usr/sbin/keepalived --dont-fork
+             └─10234 /usr/sbin/keepalived --dont-fork
+
+Oct 01 07:13:15 ubuntuserver2204 Keepalived[10233]: Configuration file /etc/keepalived/keepalived.conf
+Oct 01 07:13:15 ubuntuserver2204 Keepalived[10233]: NOTICE: setting config option max_auto_priority should result in better keepalived performance
+Oct 01 07:13:15 ubuntuserver2204 Keepalived[10233]: Starting VRRP child process, pid=10234
+Oct 01 07:13:15 ubuntuserver2204 systemd[1]: keepalived.service: Got notification message from PID 10234, but reception only permitted for main PID 10233
+Oct 01 07:13:15 ubuntuserver2204 Keepalived[10233]: Startup complete
+Oct 01 07:13:15 ubuntuserver2204 systemd[1]: Started Keepalive Daemon (LVS and VRRP).
+Oct 01 07:13:15 ubuntuserver2204 Keepalived_vrrp[10234]: (VI_1) entering FAULT state (no IPv4 address for interface)
+Oct 01 07:13:16 ubuntuserver2204 Keepalived_vrrp[10234]: (VI_1) entering FAULT state
+Oct 01 07:13:16 ubuntuserver2204 Keepalived_vrrp[10234]: VRRP_Script(chk_haproxy) succeeded
+Oct 01 07:13:16 ubuntuserver2204 Keepalived_vrrp[10234]: (VI_1) Changing effective priority from 101 to 103
+root@ubuntuserver2204:/etc/keepalived# 
