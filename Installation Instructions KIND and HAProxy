@@ -135,7 +135,7 @@ After the installation is complete, we will configure the HA Proxy. For that we 
 # nano /etc/haproxy/haproxy.cfg
 
 
-Copy lines 119 to 131 and Add to the bottom of the existing haproxy.cfg file
+Copy lines 140 to 152 and Add to the bottom of the existing haproxy.cfg file
 
 frontend kubernetes
  mode tcp
@@ -163,6 +163,34 @@ Restart the service so that it loads the new settings.
 # sudo systemctl restart haproxy
 # sudo systemctl status haproxy
 
+You should see follow status for haproxy (especially line 170)
+root@ubuntuserver2204:/home/ubuntu# sudo systemctl status haproxy
+● haproxy.service - HAProxy Load Balancer
+     Loaded: loaded (/lib/systemd/system/haproxy.service; enabled; vendor preset: enabled)
+     Active: active (running) since Mon 2024-09-30 09:27:12 UTC; 20h ago
+       Docs: man:haproxy(1)
+             file:/usr/share/doc/haproxy/configuration.txt.gz
+    Process: 31646 ExecStartPre=/usr/sbin/haproxy -Ws -f $CONFIG -c -q $EXTRAOPTS (code=exited, status=0/SUCCESS)
+   Main PID: 31648 (haproxy)
+      Tasks: 3 (limit: 4520)
+     Memory: 69.7M
+        CPU: 50.097s
+     CGroup: /system.slice/haproxy.service
+             ├─31648 /usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -p /run/haproxy.pid -S /run/haproxy-master.sock
+             └─31650 /usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -p /run/haproxy.pid -S /run/haproxy-master.sock
+
+Sep 30 09:45:10 ubuntuserver2204 haproxy[31650]: [NOTICE]   (31650) : haproxy version is 2.4.24-0ubuntu0.22.04.1
+Sep 30 09:45:10 ubuntuserver2204 haproxy[31650]: [NOTICE]   (31650) : path to executable is /usr/sbin/haproxy
+Sep 30 09:45:10 ubuntuserver2204 haproxy[31650]: [ALERT]    (31650) : backend 'k8s-control-plane' has no server available!
+Sep 30 09:45:51 ubuntuserver2204 haproxy[31650]: [WARNING]  (31650) : Server k8s-control-plane/k8s-slave-001.lan.int is UP, reason: Layer4 check passed, check duration: 0ms. 1 active a>
+Sep 30 09:45:51 ubuntuserver2204 haproxy[31650]: [WARNING]  (31650) : Server k8s-control-plane/k8s-slave-003.lan.int is UP, reason: Layer4 check passed, check duration: 0ms. 2 active a>
+Sep 30 09:45:51 ubuntuserver2204 haproxy[31650]: [WARNING]  (31650) : Server k8s-control-plane/k8s-slave-002.lan.int is UP, reason: Layer4 check passed, check duration: 0ms. 3 active a>
+Oct 01 03:16:57 ubuntuserver2204 haproxy[31650]: [WARNING]  (31650) : Server k8s-control-plane/k8s-slave-001.lan.int is DOWN, reason: Layer4 timeout, info: " at initial connection step>
+Oct 01 03:16:57 ubuntuserver2204 haproxy[31650]: [WARNING]  (31650) : Server k8s-control-plane/k8s-slave-003.lan.int is DOWN, reason: Layer4 timeout, info: " at initial connection step>
+Oct 01 03:16:59 ubuntuserver2204 haproxy[31650]: [WARNING]  (31650) : Server k8s-control-plane/k8s-slave-002.lan.int is DOWN, reason: Layer4 timeout, info: " at initial connection step>
+Oct 01 03:16:59 ubuntuserver2204 haproxy[31650]: [ALERT]    (31650) : backend 'k8s-control-plane' has no server available!
+
+
 At this point, you may see some error message when you try to run haproxy, it is ok, just ignore it, after you install Keepalived, the haproxy will run normally.
 
 Configuring Keepalived
@@ -189,7 +217,7 @@ Active Internet connections (servers and established)
 Proto Recv-Q Send-Q Local Address           Foreign Address         State      
 tcp        0      0 192.168.101.135:6443    0.0.0.0:*               LISTEN     
 
-Line 162 shows that the HAProxy is running correctly, i.e. any client browser that enters http://192.168.101.135:6443 will be redirected by HAProxy to one of the worker nodes running the Juice-Shop website.
+Line 218 shows that the HAProxy is running correctly, i.e. any client browser that enters http://192.168.101.135:6443 will be redirected by HAProxy to one of the worker nodes running the Juice-Shop website.
 
 Now go to another VM machine that contains the client browser and enter http://192.168.101.135:6443, you should be able to see the juice-shop website.
 
@@ -214,7 +242,7 @@ kube-system          kube-proxy-wq2ln                             1/1     Runnin
 kube-system          kube-scheduler-kind-control-plane            1/1     Running   0          61m   172.18.0.2   kind-control-plane   <none>           <none>
 local-path-storage   local-path-provisioner-988d74bc-6zrcm        1/1     Running   0          61m   10.244.0.2   kind-control-plane   <none>           <none>
 
-The above shows it is running in kind-worker3, see line 199, now we can drain it and see that it will shift to another worker node
+The above shows it is running in kind-worker3, see line 228, now we can drain it and see that it will shift to another worker node
 # kubectl drain --ignore-daemonsets kind-worker2
 # kubectl drain --ignore-daemonsets kind-worker3
 
