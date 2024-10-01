@@ -95,7 +95,7 @@ root@ubuntuserver2204:/home/ubuntu#
 
 Check the juice-shop2 service is properly created
 =================================================
-Error from server (NotFound): services "juice-shop" not found
+ 
 root@ubuntuserver2204:/home/ubuntu# kubectl get svc juice-shop2
 NAME          TYPE       CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
 juice-shop2   NodePort   10.96.161.235   <none>        8000:30934/TCP   79s
