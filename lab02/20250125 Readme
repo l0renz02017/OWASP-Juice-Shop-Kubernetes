@@ -1,3 +1,6 @@
-In this lab, I have made a modification to the deployment manifest.
+In this lab, I have made a modification to the JuiceShop deployment manifest to have 3 replicas, i.e. three instances of this app should be available at all times
 I want to have 3 replicas of the JuiceShop running after I run this deployment manifest (i.e. juice-shop-deployment.yaml)
-I have also modified the kind config file (i.e. kind-example-config.yaml) so that when KinD spins up a new kubernetes cluster, this cluster will have two control planes.
+
+I have also modified the kind config file (i.e. kind-example-config.yaml) so that when KinD spins up a new kubernetes cluster, this cluster will have two control planes nodes and three worker nodes.
+In this lab, if everything is set up correctly, we can show draining of one control plane and the other control plane should take over. 
+Similarly we can drain all the JuiceShop instance from different worker nodes to see how the cluster instantly spin new instances of JuiceShop.
