@@ -1,0 +1,2 @@
+In this lab, I have made a modification to the deployment manifest.
+I want to have 3 replicas of the JuiceShop running after I run this deployment manifest
