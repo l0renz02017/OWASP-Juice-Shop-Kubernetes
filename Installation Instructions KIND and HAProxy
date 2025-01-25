@@ -147,15 +147,15 @@ backend k8s-control-plane
  mode tcp
  balance roundrobin
  option tcp-check
- server k8s-slave-001.lan.int 172.18.0.3:30934 check fall 3 rise 2
- server k8s-slave-002.lan.int 172.18.0.4:30934 check fall 3 rise 2
- server k8s-slave-003.lan.int 172.18.0.5:30934 check fall 3 rise 2
+ server k8s-master-001.lan.int 172.18.0.3:30934 check fall 3 rise 2 # replace these IP addresses with the IP address of your master nodes
+ server k8s-master-002.lan.int 172.18.0.4:30934 check fall 3 rise 2
+ server k8s-master-003.lan.int 172.18.0.5:30934 check fall 3 rise 2
 
 Edit the host file (add the following into the host file at /etc/hosts)
 ==================
-172.18.0.3 k8s-slave-001.lan.int
-172.18.0.4 k8s-slave-002.lan.int
-172.18.0.5 k8s-slave-003.lan.int
+172.18.0.3 k8s-master-001.lan.int
+172.18.0.4 k8s-master-002.lan.int
+172.18.0.5 k8s-master-003.lan.int
 
 
 Restart the service so that it loads the new settings.
