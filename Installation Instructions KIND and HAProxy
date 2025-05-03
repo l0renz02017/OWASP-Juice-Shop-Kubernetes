@@ -21,6 +21,7 @@ network:
 
 Create the K8 Cluster with 1 Master and 3 Worker nodes
 ======================================================
+sudo su
 kind create cluster --config kind-example-config.yaml
 Creating cluster "kind" ...
  ✓ Ensuring node image (kindest/node:v1.30.0) 🖼
