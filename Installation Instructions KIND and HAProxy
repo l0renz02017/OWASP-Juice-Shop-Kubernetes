@@ -136,7 +136,7 @@ After the installation is complete, we will configure the HA Proxy. For that we 
 # nano /etc/haproxy/haproxy.cfg
 
 
-Copy lines 140 to 152 and Add to the bottom of the existing haproxy.cfg file
+Copy lines 141 to 153 and Add to the bottom of the existing haproxy.cfg file
 
 frontend kubernetes
  mode tcp
